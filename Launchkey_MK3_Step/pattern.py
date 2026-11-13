@@ -127,7 +127,7 @@ class PatternEditor:
         return int(round(median(differences))) if differences else DEFAULT_ACCENT_AMOUNT
 
     def has_16ths_between(self, pitch):
-        """Whether one drum has hits that swing moves: 16ths between the 8ths."""
+        """Whether one drum (or any drum) has hits that swing moves: 16ths between the 8ths."""
         return any(step_grid.is_swung(sixteenth_position(note.start_time)[0]) for note in self.notes(pitch))
 
     def swing_percent(self, pitch):
@@ -193,22 +193,30 @@ class PatternEditor:
         that Live had cut short gets its drum's length back (Live cuts it again where it still runs
         into the next hit), so turning swing down restores the lengths.
         """
-        notes = self.notes(pitch)
-        old, new = majority_delay(notes), swing_delay_for(percent)
-        starts = sorted(note.start_time for note in notes)
-        length = self._usual_length(notes, default=SIXTEENTH)
-        for note in notes:
-            position, offset = sixteenth_position(note.start_time)
-            if not step_grid.is_swung(position):
-                continue
-            if abs(offset - old) <= SWING_TOLERANCE or abs(offset) <= SWING_TOLERANCE:
-                if cut_short(note, starts):
-                    note.duration = max(note.duration, length)
-                note.start_time = position * SIXTEENTH + new
+        self._swing(self.notes(pitch), percent)
+
+    def swing_kit(self, percent):
+        """Give every drum in the clip the same swing, like a TR-909's master shuffle."""
+        self._swing(self.notes(), percent)
+
+    def _swing(self, notes, percent):
+        new = swing_delay_for(percent)
+        for lane in self._lanes(notes).values():
+            old = majority_delay(lane)
+            starts = sorted(note.start_time for note in lane)
+            length = self._usual_length(lane, default=SIXTEENTH)
+            for note in lane:
+                position, offset = sixteenth_position(note.start_time)
+                if not step_grid.is_swung(position):
+                    continue
+                if abs(offset - old) <= SWING_TOLERANCE or abs(offset) <= SWING_TOLERANCE:
+                    if cut_short(note, starts):
+                        note.duration = max(note.duration, length)
+                    note.start_time = position * SIXTEENTH + new
         self._clip.apply_note_modifications(notes)
 
     def select_notes(self, pitch):
-        """Select one drum's notes (and only those) in the clip, as shown in Live's clip view."""
+        """Select one drum's notes (and only those), or every drum's, as shown in Live's clip view."""
         self._clip.deselect_all_notes()
         self._clip.select_notes_by_id([note.note_id for note in self.notes(pitch)])
 

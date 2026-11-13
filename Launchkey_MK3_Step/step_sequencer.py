@@ -9,7 +9,8 @@ Up/Down arrows: previous/next loaded Drum Rack pad.
 
 Pots: Velocity, Accent amount, Swing, Length, Chance, Step size, Page, Bars. Swing is set per
 drum, like the per-instrument shuffle on Roland's TR-909: it pushes the drum's 16ths between the
-8ths later, and the beat and the "and" stay on the grid. The Launchkey shows a pot's name and
+8ths later, and the beat and the "and" stay on the grid. Shift + the swing pot sets the same swing
+for the whole kit, like the TR-909's master shuffle. The Launchkey shows a pot's name and
 value when it's turned; in step mode those are the step sequencer's.
 """
 import Live
@@ -41,7 +42,8 @@ ACCENT_BUTTON_COLOR = Rgb.ORANGE_HALF
 ACCENT_BUTTON_PRESSED_COLOR = Rgb.ORANGE
 
 TITLE = 'Step Sequencer'
-NOTHING_TO_SWING = ' no 16ths'  # shown after the swing % when the drum has no 16ths between the 8ths
+NOTHING_TO_SWING = 'no 16ths'  # shown after the swing % when there are no 16ths between the 8ths
+WHOLE_KIT = 'all drums'  # shown after the swing % for Shift + the swing pot
 BLANK = ' '  # the Launchkey script never sends empty text, so blank with a space
 
 
@@ -52,8 +54,9 @@ class StepSequencerComponent(Component):
     accent_button = ButtonControl(color=ACCENT_BUTTON_COLOR, pressed_color=ACCENT_BUTTON_PRESSED_COLOR)
     pots = control_list(InputControl, control_count=knobs.NUM_KNOBS)
 
-    def __init__(self, show_notification=None, schedule=None, note_factory=None, *a, **k):
+    def __init__(self, show_notification=None, schedule=None, note_factory=None, is_shift_held=None, *a, **k):
         self._show_notification = show_notification or (lambda *_: None)
+        self._is_shift_held = is_shift_held or (lambda: False)
         self._schedule = schedule
         self._note_factory = note_factory
         self._track = None
@@ -64,6 +67,7 @@ class StepSequencerComponent(Component):
         self._accent_amount = None
         self._accent_amount_in_clip = None
         self._lane_swing = {}  # drum pad note -> swing % dialled in on the swing pot
+        self._kit_swing = None  # swing % dialled in for the whole kit (Shift + the swing pot)
         self._held_steps = {}  # step -> keep the hit on release (False = tap to remove)
         self._pending_edits = {}
         self._edit_flush_scheduled = False
@@ -179,7 +183,7 @@ class StepSequencerComponent(Component):
         position, offset = sixteenth_position(window_start)
         if offset > SWING_TOLERANCE or not step_grid.is_swung(position):
             return 0.0  # the beat, the "and", or a step off the 16th grid (1/32, triplets)
-        percent = self._lane_swing.get(pitch)
+        percent = self._lane_swing.get(pitch, self._kit_swing)
         if percent is None:
             percent = editor.swing_percent(pitch)
         return swing_delay_for(percent)
@@ -238,15 +242,38 @@ class StepSequencerComponent(Component):
     def _set_swing(self, knob_value):
         """Swing the selected drum only, like the per-instrument shuffle on Roland's TR-909."""
         percent = knobs.swing(knob_value)
+        if self._is_shift_held():
+            self._set_kit_swing(percent)
+            return
         pitch, editor = self._lane_pitch(), self._editor()
         nothing_to_swing = pitch is not None and editor is not None and not editor.has_16ths_between(pitch)
-        self._show_pot_value(knobs.SWING, '{}%{}'.format(percent, NOTHING_TO_SWING if nothing_to_swing else ''))
+        self._show_pot_value(knobs.SWING, ' '.join(['{}%'.format(percent)] + ([NOTHING_TO_SWING] if nothing_to_swing else [])))
         if pitch is None:
             return
         self._keep_held_steps()
         self._lane_swing[pitch] = percent
         if editor is not None:
             self._defer(('swing', pitch), lambda: self._apply_swing(pitch))
+
+    def _set_kit_swing(self, percent):
+        """Shift + the swing pot: the same swing for every drum, like a TR-909's master shuffle."""
+        editor = self._editor()
+        nothing_to_swing = editor is not None and not editor.has_16ths_between(None)
+        self._show_pot_value(knobs.SWING, '{}% {}'.format(percent, NOTHING_TO_SWING if nothing_to_swing else WHOLE_KIT))
+        self._keep_held_steps()
+        self._kit_swing = percent
+        self._lane_swing = {}  # every drum now has the kit's swing
+        for key in [key for key in self._pending_edits if isinstance(key, tuple) and key[0] == 'swing']:
+            del self._pending_edits[key]  # superseded by the kit's swing
+        if editor is not None:
+            self._defer('kit swing', self._apply_kit_swing)
+
+    def _apply_kit_swing(self):
+        editor = self._editor()
+        if editor is None or self._kit_swing is None:
+            return
+        editor.swing_kit(self._kit_swing)
+        editor.select_notes(None)  # shows in Live's clip view which notes the swing pot moves
 
     def _apply_swing(self, pitch):
         editor = self._editor()
@@ -360,6 +387,7 @@ class StepSequencerComponent(Component):
                 # the first clip existed do (they apply to the clip the first tap creates).
                 self._accent_amount = None
                 self._lane_swing = {}
+                self._kit_swing = None
             self._clip = clip
             self._page_index = 0
             self._accent_amount_in_clip = None

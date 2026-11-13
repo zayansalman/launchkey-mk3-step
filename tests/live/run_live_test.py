@@ -309,6 +309,14 @@ def run_checks(t):
                     [n[:2] for n in t.ask("h.notes()") if n[1] == next_lane], [[0.5, next_lane]])
             t.check('the screen says there are no 16ths to swing', t.ask("h.pot_display(2)"), ['Swing', '75% no 16ths'])
             t.act("inject((0xBF, 23, 0))")
+            t.act("inject((0xB0, 108, 127), (0xBF, 23, 127), (0xB0, 108, 0))")  # Shift + swing pot
+            t.check('Shift + swing pot swings the whole kit',
+                    [n[:2] for n in t.ask("h.notes()") if n[0] in (0.375, 0.875)], [[0.375, lane], [0.875, lane]])
+            t.check('the screen says all drums', t.ask("h.pot_display(2)"), ['Swing', '75% all drums'])
+            t.check('Shift with a pot turn is not Shift + Session', t.ask("h.state()['step_mode']"), True)
+            t.act("inject((0xB0, 108, 127), (0xBF, 23, 0), (0xB0, 108, 0))")
+            t.check('the kit back to straight',
+                    [n[:2] for n in t.ask("h.notes()") if n[0] in (0.25, 0.75)], [[0.25, lane], [0.75, lane]])
         t.act("inject((0xBF, 107, 127), (0xBF, 107, 0))")
         t.check('down arrow goes back', t.ask("bridge.test_track.devices[0].view.selected_drum_pad.note"), lane)
 

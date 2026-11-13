@@ -28,6 +28,7 @@ or pick any other pad mode, to leave.
 | Pot 1 Velocity | The drum's velocity (accents stay on top). |
 | Pot 2 Accent | How much louder accented hits are, for the whole clip. |
 | Pot 3 Swing | Swing for the selected drum only, 50% (straight) to 75%, like a TR-909's shuffle or an MPC's 16th swing (the groove of "Revolution 909" or UK garage). It pushes that drum's 16ths between the 8ths later (pads 2, 4, 6… at 1/16); hits on the beat and on the "and" stay on the grid. A drum that plays only 8ths has nothing to swing, and the screen says "no 16ths". Swing doesn't depend on Pot 6, and it selects the drum's notes in Live's clip view. Live can't overlap two hits of one drum, so a hit swung into the next one is trimmed; it gets its length back when you turn swing down. |
+| Shift + Pot 3 | The same swing for every drum, like the TR-909's master shuffle (the screen says "all drums"). Turning Pot 3 without Shift then changes just the selected drum again. |
 | Pot 4 Length | Note length, 10%–400% of a step. |
 | Pot 5 Chance | Probability that the drum's hits play. |
 | Pot 6 Steps | Step size: 1/32, 1/16T, 1/16, 1/8T, 1/8, 1/4. |
