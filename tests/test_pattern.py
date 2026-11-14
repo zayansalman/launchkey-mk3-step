@@ -182,6 +182,19 @@ class SwingTest(PatternEditorTestCase):
         self.assertEqual(self.editor.swing_percent(SNARE), 70)
         self.assertEqual(self.editor.swing_percent(KICK), 50)
 
+    def test_swing_kit_gives_every_drum_the_same_swing(self):
+        # Like a TR-909's master shuffle: one swing for the whole kit.
+        for start in (0.0, 0.25, 0.5, 0.75):
+            add(self.clip, KICK, start)
+        add(self.clip, SNARE, 0.75)
+        for start in (0.0, 0.5):
+            add(self.clip, HAT, start)
+        self.editor.swing_kit(70)
+        self.assertEqual(self.times(KICK), [0.0, 0.35, 0.5, 0.85])
+        self.assertEqual(self.times(SNARE), [0.85])
+        self.assertEqual(self.times(HAT), [0.0, 0.5])
+        self.assertEqual((self.editor.swing_percent(KICK), self.editor.swing_percent(SNARE)), (70, 70))
+
     def test_swing_gives_back_the_length_live_cut_short(self):
         # Live doesn't let two hits of one drum overlap: a hit swung into the next one is cut short.
         for start in (0.0, 0.25, 0.5, 1.25):
@@ -202,6 +215,12 @@ class SwingTest(PatternEditorTestCase):
 
 
 class SelectionTest(PatternEditorTestCase):
+
+    def test_select_notes_of_every_drum(self):
+        kick = add(self.clip, KICK, 0.0)
+        snare = add(self.clip, SNARE, 0.5)
+        self.editor.select_notes(None)
+        self.assertEqual(self.clip.selected_ids, {kick.note_id, snare.note_id})
 
     def test_select_notes_selects_one_drum_only(self):
         kick = add(self.clip, KICK, 0.0)

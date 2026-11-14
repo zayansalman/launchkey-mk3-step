@@ -7,7 +7,8 @@ exactly like the stock script.
 
 In step mode the Launchkey shows its session layout, so it doesn't report Shift + Session (to
 the Launchkey that changes nothing): only Shift reaches the script. A Shift press with nothing
-else in it is therefore taken as Shift + Session.
+else in it is therefore taken as Shift + Session. Shift held while turning the swing pot swings
+the whole kit (see step_sequencer.py).
 """
 import logging
 import time
@@ -57,6 +58,7 @@ class Launchkey_MK3_Step(Launchkey_MK3):
         self._pending_pad_layout_echoes = []
         self._entering_step_mode = False
         self._resume_step_mode = False
+        self._shift_held = False
         self._shift_alone = False  # Shift is down and nothing else has come in since
         super().__init__(*a, **k)
 
@@ -67,6 +69,7 @@ class Launchkey_MK3_Step(Launchkey_MK3):
             is_enabled=False,
             show_notification=self._notification_component.show_notification,
             schedule=self.schedule_message,
+            is_shift_held=lambda: self._shift_held,
             layer=Layer(priority=STEP_SEQUENCER_LAYER_PRIORITY,
                         step_buttons='clip_launch_matrix',
                         next_lane_button='up_button',
@@ -149,7 +152,9 @@ class Launchkey_MK3_Step(Launchkey_MK3):
         """Take a Shift press with nothing else in it as Shift + Session (see the module notes)."""
         if not is_shift_message(midi_bytes):
             self._shift_alone = False
-        elif midi_bytes[2]:
+            return
+        self._shift_held = bool(midi_bytes[2])
+        if self._shift_held:
             self._shift_alone = True
         elif self._shift_alone:
             self._shift_alone = False

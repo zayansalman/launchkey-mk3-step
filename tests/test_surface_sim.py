@@ -421,6 +421,28 @@ class PotsTest(SurfaceTestCase):
         self.tap(5)  # a new rim off-beat gets the rim's swing
         self.assertIn(1.375, [time for time, _ in self.hits(RIM)])
 
+    def test_shift_and_swing_pot_swing_the_whole_kit(self):
+        # Like a TR-909's master shuffle: hold Shift and turn the swing pot.
+        self.tap(1, 3)
+        self.press_arrow(UP)  # the rim
+        self.tap(1)
+        self.button(CC_CH1, SHIFT, True)
+        self.turn(SWING_POT, 127)
+        self.button(CC_CH1, SHIFT, False)
+        self.sim.pump(ticks=2)
+        self.read_output()
+        self.assertTrue(self.step_mode)  # Shift with a pot turn isn't Shift + Session
+        self.assertEqual([time for time, _ in self.hits(KICK)], [0.0, 0.375, 0.5, 0.875, 1.0])
+        self.assertEqual([time for time, _ in self.hits(RIM)], [0.375])
+        self.assertEqual(self.pot_display(SWING_POT), ('Swing', '75% all drums'))
+        self.assertEqual(len(self.clip().selected_notes()), 6)  # every drum's notes, shown in Live
+        self.press_arrow(UP)  # the snare: no hits yet, but it has the kit's swing too
+        self.tap(3)
+        self.assertEqual([time for time, _ in self.hits(SNARE)], [0.875])
+        self.turn(SWING_POT, 0)  # without Shift: only the snare goes straight
+        self.assertEqual([time for time, _ in self.hits(SNARE)], [0.75])
+        self.assertEqual([time for time, _ in self.hits(RIM)], [0.375])
+
     def test_holding_a_hit_while_turning_swing_keeps_it(self):
         self.press(2)
         self.turn(SWING_POT, 100)
