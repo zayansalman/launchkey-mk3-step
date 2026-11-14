@@ -5,9 +5,15 @@ Launchkey MK3 script does, plus a 16-step drum sequencer on the pads (like the L
 
 ## Install
 
+Needs Ableton Live 12 and a Novation Launchkey MK3 (tested with Live 12.4 and the 37-key model).
+On macOS:
+
 ```bash
 ./install.sh
 ```
+
+On Windows, copy the `Launchkey_MK3_Step` folder to `Documents\Ableton\User Library\Remote Scripts`
+and rename it `Launchkey_Seq`.
 
 Live lists it as **Launchkey Seq**. In **Settings → Link, Tempo & MIDI**, set the Launchkey's
 Control Surface row to *Launchkey Seq*, with Input *Launchkey MK3 37 (LKMK3 DAW Out)* and Output
@@ -62,3 +68,12 @@ python3.11 -m unittest discover tests
   connected. Install with `./install.sh --dev-bridge`, open Live with Launchkey Seq selected, run
   `python3 tests/live/run_live_test.py`, then `./install.sh` again to remove the test hook. It adds
   and removes a test track and mutes the master while it runs.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Issues and pull requests are welcome.
+
+Launchkey Seq builds on the Launchkey MK3 script that comes with Ableton Live: it loads that
+script from your Live installation and includes none of Ableton's code. It isn't affiliated with
+or endorsed by Novation, Ableton or Roland. Launchkey is a trademark of Focusrite Audio
+Engineering, Ableton Live of Ableton AG, and TR-909 of Roland Corporation.
